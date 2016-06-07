@@ -1,7 +1,7 @@
 /*
  * This file is a library for Espruino, a JavaScript interpreter for Microcontrollers
  *
- * Copyright (C) 2015 Juergen Marsch <juergenmarsch@googlemail.com>
+ * Copyright (C) 2016 Juergen Marsch <juergenmarsch@googlemail.com>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,7 +19,6 @@
  */
 
 #include "jswrap_LedMatrix.h"
-#include "libneoPixel.h"
 #include "jsparse.h"
 #include "jswrap_arraybuffer.h"
 #include "jswrap_espruino.h"
@@ -34,9 +33,7 @@ static inline void LedMatrixStructInit(JsLedMatrix *lm){
   lm->data.cellsLength = 192;
   lm->data.red = 32;
   lm->data.green = 32;
-  lm->data.blue = 32;
-  lm->data.oneBitDuration = 56;
-  lm->data.zeroBitDuration = 14;
+  lm->data.blue = 32;  
 }
 
 void LedMatrixSetVar(JsLedMatrix *lm){
@@ -68,6 +65,8 @@ bool LedMatrixGetFromVar(JsLedMatrix *lm, JsVar *parent){
   "type" : "class",
   "class" : "LedMatrix"
 }
+A class to support some simple drawings and animations (rotate and shift)
+For a LED Matrix like the 8*8 WS2812 board
 */
 /*JSON{
   "type" : "staticmethod",
@@ -76,14 +75,17 @@ bool LedMatrixGetFromVar(JsLedMatrix *lm, JsVar *parent){
   "generate" : "jswrap_LedMatrix_createArrayBuffer",
   "params" :[
     ["width","int32","width"],
-    ["height","int32","height"],
-    ["pin","pin","pin"]
+    ["height","int32","height"]
   ],
   "return" : ["JsVar","new LedMatrix object"],
   "return_object" : "LedMatrix"
 }
+Creates LEDMatrix object with an Arraybuffer for a LED-Matrix
+This is tested with 8*8 WS2812 matrix. Others should work.
+For other types with different timing, see setPulseLength
+
 */
-JsVar *jswrap_LedMatrix_createArrayBuffer(int width,int height,Pin pin){
+JsVar *jswrap_LedMatrix_createArrayBuffer(int width,int height){
   JsVar *parent = jspNewObject(0,"LedMatrix");
   JsLedMatrix lm;
   LedMatrixStructInit(&lm);
@@ -92,46 +94,10 @@ JsVar *jswrap_LedMatrix_createArrayBuffer(int width,int height,Pin pin){
   lm.data.height = height;
   lm.data.cells = width * height;
   lm.data.cellsLength = width * height * 3;
-  lm.data.pin = pin;
   LedMatrixSetVar(&lm);
   JsVar *buf = jswrap_arraybuffer_constructor(lm.data.cellsLength);
   jsvUnLock2(jsvAddNamedChild(lm.LedMatrixVar,buf,"buffer"),buf);
   return parent;
-}
-
-/*JSON{
-  "type" : "method",
-  "class" : "LedMatrix",
-  "name" : "show",
-  "generate" : "jswrap_LedMatrix_show"
-}*/
-void jswrap_LedMatrix_show(JsVar *parent){
-  JsLedMatrix lm;
-  if(!LedMatrixGetFromVar(&lm,parent)) return ;
-  JsVar *buf = jsvObjectGetChild(parent,"buffer",false);
-  JSV_GET_AS_CHAR_ARRAY(pixels, dataLength, buf);
-  uint8_t *p = (uint8_t *)pixels;
-  uint8_t *end = p + lm.data.cellsLength;
-  sendToNeopixel(lm.data.pin,p,end,lm.data.zeroBitDuration,lm.data.oneBitDuration);
-  jsvUnLock(buf);
-}
-
-/*JSON{
-  "type":"method",
-  "class" : "LedMatrix",
-  "name" : "setPulseLength",
-  "generate" : "jswrap_LedMatrix_setPulseLength",
-  "params"   : [
-    ["zeroBitDuration","int","zeroLength"],
-    ["oneBitDuration","int","oneLength"]
- ]   
-}*/
-void jswrap_LedMatrix_setPulseLength(JsVar *parent, int zeroBitDuration, int oneBitDuration){
-  JsLedMatrix lm;
-  if(!LedMatrixGetFromVar(&lm,parent)) return ;
-  lm.data.oneBitDuration = oneBitDuration;
-  lm.data.zeroBitDuration = zeroBitDuration;
-  LedMatrixSetVar(&lm);
 }
 
 /*JSON{
@@ -144,7 +110,11 @@ void jswrap_LedMatrix_setPulseLength(JsVar *parent, int zeroBitDuration, int one
     ["green","int","green"],
     ["blue","int","blue"]
  ]   
-}*/
+}
+Sets color (red,green,blue) for following drawing commands.
+Each color is a value from 0 to 255,
+Recommendation for stable timing is to use 1 as lowest value
+*/
 void jswrap_LedMatrix_setColor(JsVar *parent, int red, int green, int blue){
   JsLedMatrix lm;
   if(!LedMatrixGetFromVar(&lm,parent)) return ;
@@ -164,7 +134,11 @@ void jswrap_LedMatrix_setColor(JsVar *parent, int red, int green, int blue){
     ["sat","float","saturation"],
     ["bri","float","brightness"]
  ]   
-}*/
+}
+Sets color for following drawings
+Based on hue, saturation and brightness
+Values are from 0 to 1
+*/
 void jswrap_LedMatrix_setColorHSB(JsVar *parent, JsVarFloat hue, JsVarFloat sat, JsVarFloat bri){
   JsLedMatrix lm;
   if(!LedMatrixGetFromVar(&lm,parent)) return ;
@@ -184,7 +158,9 @@ void jswrap_LedMatrix_setColorHSB(JsVar *parent, JsVarFloat hue, JsVarFloat sat,
     ["row","int","row"],
     ["column","int","column"]
  ]   
-}*/
+}
+Sets a pixel by row andcolumn with Color set before
+*/
 void LedMatrix_setPixel(JsVar *buf,JsLedMatrix lm,int row,int column){
   JsvArrayBufferIterator it;int p;
   p = (row * lm.data.width + column) * 3;
@@ -214,7 +190,9 @@ void jswrap_LedMatrix_setPixel(JsVar *parent, int row, int column ){
     ["column","int","column"]
   ],
   "return" : ["JsVar","pixelBuffer"] 
-}*/
+}
+Returns a buffer with color of pixel defined by row and column
+*/
 JsVar *LedMatrix_getPixel(JsVar *buf,JsLedMatrix lm, int row,int column){
   JsvArrayBufferIterator it;int p;
   p = (row * lm.data.width + column) *3;
@@ -246,7 +224,9 @@ JsVar *jswrap_LedMatrix_getPixel(JsVar *parent, int row, int column){
  "class"    : "LedMatrix",
  "name"     : "fill",
  "generate" : "jswrap_LedMatrix_fill"  
-}*/
+}
+Fills whole matrix with same color
+*/
 void LedMatrix_fill(JsVar *buf,JsLedMatrix lm){
   JsvArrayBufferIterator it;
   jsvArrayBufferIteratorNew(&it,buf,0);
@@ -276,7 +256,9 @@ void jswrap_LedMatrix_fill(JsVar *parent){
  "params"   : [
     ["column","int","column"]
  ]  
-}*/
+}
+Draws a full column
+*/
 void LedMatrix_drawColumn(JsVar *buf, JsLedMatrix lm, int column){
   JsvArrayBufferIterator it;int p;
   p = column * 3;
@@ -308,7 +290,9 @@ void jswrap_LedMatrix_drawColumn(JsVar *parent, int column){
  "params"   : [
     ["row","int","row"]
  ]  
-}*/
+}
+draws a full row
+*/
 void LedMatrix_drawRow(JsVar *buf, JsLedMatrix lm, int row){
   JsvArrayBufferIterator it;int p;
   p = row * lm.data.width * 3;
@@ -338,7 +322,9 @@ void jswrap_LedMatrix_drawRow(JsVar *parent, int row){
   "generate" : "jswrap_LedMatrix_getRow",
   "params" : [["row","int","row"]],
   "return" : ["JsVar","rowBuffer"]
-}*/
+}
+Returns an arraybuffer with pixel data from one row
+*/
 JsVar *LedMatrix_getRow(JsVar *buf, JsLedMatrix lm, int row){
   JsvArrayBufferIterator it;int p;
   p = row * lm.data.width * 3;
@@ -374,7 +360,9 @@ JsVar *jswrap_LedMatrix_getRow(JsVar *parent,int row){
     ["rowBuffer","JsVar","rowBuffer"],
     ["row","int","row"]
   ]
-}*/
+}
+Sets a row in internal buffer from buffer in row
+*/
 void LedMatrix_setRow(JsVar *buf,JsLedMatrix lm, JsVar *rowBuffer,int row){
   JsvArrayBufferIterator itd;int pd;
   int p = row * lm.data.width * 3;
@@ -404,7 +392,9 @@ void jswrap_LedMatrix_setRow(JsVar *parent, JsVar *rowBuffer, int row){
   "generate" : "jswrap_LedMatrix_getColumn",
   "params" : [["column","int","column"]],
   "return" : ["JsVar","columnBuffer"]
-}*/
+}
+Get a buffer with pixeldata from one column
+*/
 JsVar *LedMatrix_getColumn(JsVar *buf, JsLedMatrix lm, int column){
   JsvArrayBufferIterator its;int p;
   char *ptr = 0;
@@ -443,7 +433,9 @@ JsVar *jswrap_LedMatrix_getColumn(JsVar *parent,int column){
     ["rowBuffer","JsVar","columnBuffer"],
     ["row","int","column"]
   ]
-}*/
+}
+Sets a column in internal buffer from buffer in column
+*/
 void LedMatrix_setColumn(JsVar *buf,JsLedMatrix lm, JsVar *columnBuffer,int column){
   JsvArrayBufferIterator itd;int pd;
   int p = column * 3;
@@ -477,7 +469,10 @@ void jswrap_LedMatrix_setColumn(JsVar *parent, JsVar *columnBuffer, int column){
   "params" : [
     ["direction","int","direction"]
   ]
-}*/
+}
+Shifts whole matrix into direction and clears new pixels
+0 = up, 1 = down, 2 = left, 3 = right
+*/
 void LedMatrix_shift(JsVar *buf, JsLedMatrix lm, int direction){
     JsVar *tmp;
     switch(direction) {
@@ -527,7 +522,10 @@ void jswrap_LedMatrix_shift(JsVar *parent, int direction){
   "params" : [
     ["direction","int","direction"]
   ]
-}*/
+}
+Rotates pixel data in matrix
+0 = up, 1 = down, 2 = left, 3 = right
+*/
 void LedMatrix_rotate(JsVar *buf, JsLedMatrix lm, int direction){
     JsVar *tmp;
     switch(direction) {
@@ -564,4 +562,5 @@ void jswrap_LedMatrix_rotate(JsVar *parent, int direction){
   LedMatrix_rotate(buf,lm,direction);
   jsvUnLock(buf);
 }
+
 
