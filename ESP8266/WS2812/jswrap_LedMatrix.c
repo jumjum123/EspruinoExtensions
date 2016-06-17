@@ -33,7 +33,9 @@ static inline void LedMatrixStructInit(JsLedMatrix *lm){
   lm->data.cellsLength = 192;
   lm->data.red = 32;
   lm->data.green = 32;
-  lm->data.blue = 32;  
+  lm->data.blue = 32;
+  lm->data.w_width = 0;
+  lm->data.w_height = 0;  
 }
 
 void LedMatrixSetVar(JsLedMatrix *lm){
@@ -59,6 +61,45 @@ bool LedMatrixGetFromVar(JsLedMatrix *lm, JsVar *parent){
     return true;
   } else
     return false;
+}
+
+JsVar *LedMatrix_getRect(JsVar *buf, JsLedMatrix lm,int row,int column,int width,int height){
+  JsvArrayBufferIterator its;int p;
+  char *ptr = 0;
+  JsVar *bufa = jsvNewArrayBufferWithPtr(height * width * 3,&ptr);
+  JsvArrayBufferIterator itd;
+  jsvArrayBufferIteratorNew(&itd,bufa,0);
+  p = (row * lm.data.width + column) * 3;
+  for(int i = 0; i < height; i++){
+    jsvArrayBufferIteratorNew(&its,buf,p);	
+	for(int j = 0; j < (width * 3);j++){
+      jsvArrayBufferIteratorSetByteValue(&itd,(char)jsvArrayBufferIteratorGetIntegerValue(&its));
+      jsvArrayBufferIteratorNext(&itd);
+      jsvArrayBufferIteratorNext(&its);
+	}
+	jsvArrayBufferIteratorFree(&its);
+    p += lm.data.width * 3;
+  }
+  jsvArrayBufferIteratorFree(&itd);
+  return bufa;
+}
+
+void LedMatrix_setRect(JsVar *buf,JsLedMatrix lm,JsVar *rectBuffer, int row, int column,int width,int height){
+  JsvArrayBufferIterator itd;
+  JsvArrayBufferIterator its;
+  int p = (row * lm.data.width + column) * 3;
+  jsvArrayBufferIteratorNew(&its,rectBuffer,0);
+  for(int i = 0; i < height; i++){
+	jsvArrayBufferIteratorNew(&itd,buf,p);
+	for(int j = 0; j < (width * 3); j++){
+	  jsvArrayBufferIteratorSetByteValue(&itd,(char)jsvArrayBufferIteratorGetIntegerValue(&its));
+	  jsvArrayBufferIteratorNext(&itd);
+	  jsvArrayBufferIteratorNext(&its);
+	}
+	jsvArrayBufferIteratorFree(&itd);
+	p += lm.data.width * 3;
+  }
+  jsvArrayBufferIteratorFree(&its);
 }
 
 /*JSON{
@@ -146,6 +187,26 @@ void jswrap_LedMatrix_setColorHSB(JsVar *parent, JsVarFloat hue, JsVarFloat sat,
   int rgb = (int)JsVarrgb; lm.data.red = (char)rgb;
   rgb = (rgb >> 8); lm.data.green = (char)rgb;
   rgb = (rgb >> 8); lm.data.blue = (char)rgb;
+  LedMatrixSetVar(&lm);
+}
+
+/*JSON{
+  "type" : "method",
+  "class" : "LedMatrix",
+  "name" : "setWindowSize",
+  "generate" : "jswrap_LedMatrix_setWindowSize",
+  "params"   : [
+    ["width","int","width"],
+    ["height","int","height"]
+ ]   
+}
+Sets size of window for getWindow and setWindow
+*/
+void jswrap_LedMatrix_setWindowSize(JsVar *parent,int width,int height){
+  JsLedMatrix lm;
+  if(!LedMatrixGetFromVar(&lm,parent)) return;
+  lm.data.w_width = width;
+  lm.data.w_height = height;
   LedMatrixSetVar(&lm);
 }
 
@@ -326,21 +387,7 @@ void jswrap_LedMatrix_drawRow(JsVar *parent, int row){
 Returns an arraybuffer with pixel data from one row
 */
 JsVar *LedMatrix_getRow(JsVar *buf, JsLedMatrix lm, int row){
-  JsvArrayBufferIterator it;int p;
-  p = row * lm.data.width * 3;
-  jsvArrayBufferIteratorNew(&it,buf,p);
-  char *ptr = 0;
-  JsVar *bufa = jsvNewArrayBufferWithPtr(lm.data.width * 3,&ptr);
-  JsvArrayBufferIterator itd;int pd;
-  jsvArrayBufferIteratorNew(&itd,bufa,0);
-  for(int i = 0; i < lm.data.width * 3; i++){
-    jsvArrayBufferIteratorSetByteValue(&itd,(char)jsvArrayBufferIteratorGetIntegerValue(&it));
-    jsvArrayBufferIteratorNext(&it);
-    jsvArrayBufferIteratorNext(&itd);
-  }
-  jsvArrayBufferIteratorFree(&it);
-  jsvArrayBufferIteratorFree(&itd);
-  return bufa;  
+  return LedMatrix_getRect(buf,lm,row,0,lm.data.width,1); 
 }
 JsVar *jswrap_LedMatrix_getRow(JsVar *parent,int row){
   JsLedMatrix lm;
@@ -364,18 +411,7 @@ JsVar *jswrap_LedMatrix_getRow(JsVar *parent,int row){
 Sets a row in internal buffer from buffer in row
 */
 void LedMatrix_setRow(JsVar *buf,JsLedMatrix lm, JsVar *rowBuffer,int row){
-  JsvArrayBufferIterator itd;int pd;
-  int p = row * lm.data.width * 3;
-  jsvArrayBufferIteratorNew(&itd,buf,p);
-  JsvArrayBufferIterator its;int ps;
-  jsvArrayBufferIteratorNew(&its,rowBuffer,0);
-  for(int i = 0; i < lm.data.width *3;i++){
-    jsvArrayBufferIteratorSetByteValue(&itd,(char)jsvArrayBufferIteratorGetIntegerValue(&its));
-    jsvArrayBufferIteratorNext(&itd);
-    jsvArrayBufferIteratorNext(&its);
-  }
-  jsvArrayBufferIteratorFree(&itd);
-  jsvArrayBufferIteratorFree(&its);
+  LedMatrix_setRect(buf,lm,rowBuffer,row,0,lm.data.width,1);
 }
 void jswrap_LedMatrix_setRow(JsVar *parent, JsVar *rowBuffer, int row){
   JsLedMatrix lm;
@@ -396,24 +432,7 @@ void jswrap_LedMatrix_setRow(JsVar *parent, JsVar *rowBuffer, int row){
 Get a buffer with pixeldata from one column
 */
 JsVar *LedMatrix_getColumn(JsVar *buf, JsLedMatrix lm, int column){
-  JsvArrayBufferIterator its;int p;
-  char *ptr = 0;
-  JsVar *bufa = jsvNewArrayBufferWithPtr(lm.data.height * 3,&ptr);
-  JsvArrayBufferIterator itd;
-  jsvArrayBufferIteratorNew(&itd,bufa,0);
-  p = column * 3;
-  for(int i = 0; i < lm.data.height; i++){
-    jsvArrayBufferIteratorNew(&its,buf,p);	
-	for(int j = 0; j < 3;j++){
-      jsvArrayBufferIteratorSetByteValue(&itd,(char)jsvArrayBufferIteratorGetIntegerValue(&its));
-      jsvArrayBufferIteratorNext(&itd);
-      jsvArrayBufferIteratorNext(&its);
-	}
-	jsvArrayBufferIteratorFree(&its);
-    p += lm.data.width * 3;
-  }
-  jsvArrayBufferIteratorFree(&itd);
-  return bufa;
+  return LedMatrix_getRect(buf,lm,0,column,1,lm.data.height);
 }
 JsVar *jswrap_LedMatrix_getColumn(JsVar *parent,int column){
   JsLedMatrix lm;
@@ -437,21 +456,7 @@ JsVar *jswrap_LedMatrix_getColumn(JsVar *parent,int column){
 Sets a column in internal buffer from buffer in column
 */
 void LedMatrix_setColumn(JsVar *buf,JsLedMatrix lm, JsVar *columnBuffer,int column){
-  JsvArrayBufferIterator itd;int pd;
-  int p = column * 3;
-  JsvArrayBufferIterator its;int ps;
-  jsvArrayBufferIteratorNew(&its,columnBuffer,0);
-  for(int i = 0; i < lm.data.height; i++){
-    jsvArrayBufferIteratorNew(&itd,buf,p);
-    for(int j = 0; j < 3; j++){
-	  jsvArrayBufferIteratorSetByteValue(&itd,(char)jsvArrayBufferIteratorGetIntegerValue(&its));
-	  jsvArrayBufferIteratorNext(&itd);
-	  jsvArrayBufferIteratorNext(&its);
-	}
-	jsvArrayBufferIteratorFree(&itd);
-	p += lm.data.width *3;  
-  }
-  jsvArrayBufferIteratorFree(&its);
+  LedMatrix_setRect(buf,lm,columnBuffer,0,column,1,lm.data.height);
 }
 void jswrap_LedMatrix_setColumn(JsVar *parent, JsVar *columnBuffer, int column){
   JsLedMatrix lm;
@@ -460,6 +465,51 @@ void jswrap_LedMatrix_setColumn(JsVar *parent, JsVar *columnBuffer, int column){
   LedMatrix_setColumn(buf, lm, columnBuffer,column);
   jsvUnLock(buf);
 }
+
+
+/*JSON{
+  "type" : "method",
+  "class" : "LedMatrix",
+  "name" : "getWindow",
+  "generate" : "jswrap_LedMatrix_getWindow",
+  "params" : [
+    ["row","int","row"],
+    ["column","int","column"]
+  ],
+  "return" : ["JsVar","rectBuffer"]
+}
+Get a buffer with pixeldata from rect
+*/
+JsVar *jswrap_LedMatrix_getWindow(JsVar *parent,int row, int column){
+  JsLedMatrix lm;
+  if(!LedMatrixGetFromVar(&lm,parent)) return 0;
+  JsVar *buf = jsvObjectGetChild(parent,"buffer",false);
+  JsVar *bufa = LedMatrix_getRect(buf,lm,row,column,lm.data.w_width,lm.data.w_height);
+  jsvUnLock(buf);
+  return bufa;	
+}
+
+/*JSON{
+  "type" : "method",
+  "class" : "LedMatrix",
+  "name" : "setWindow",
+  "generate" : "jswrap_LedMatrix_setWindow",
+  "params" : [
+    ["pixelBuffer","JsVar","pixelBuffer"],
+    ["row","int","row"],
+    ["column","int","column"]
+  ]
+}
+Sets a rect in internal buffer from buffer in row,column
+*/
+void jswrap_LedMatrix_setWindow(JsVar *parent, JsVar *rectBuffer, int row, int column){
+  JsLedMatrix lm;
+  if(!LedMatrixGetFromVar(&lm,parent)) return;
+  JsVar *buf = jsvObjectGetChild(parent,"buffer",false);
+  LedMatrix_setRect(buf, lm, rectBuffer, row, column, lm.data.w_width, lm.data.w_height);
+  jsvUnLock(buf);
+}
+
 
 /*JSON{
   "type" : "method",
@@ -562,5 +612,4 @@ void jswrap_LedMatrix_rotate(JsVar *parent, int direction){
   LedMatrix_rotate(buf,lm,direction);
   jsvUnLock(buf);
 }
-
 

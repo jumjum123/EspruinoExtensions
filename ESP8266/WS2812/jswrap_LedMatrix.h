@@ -1,7 +1,7 @@
 /*
  * This file is a library for Espruino, a JavaScript interpreter for Microcontrollers
  *
- * Copyright (C) 2015/2016 Juergen Marsch <juergenmarsch@googlemail.com>
+ * Copyright (C) 2015 Juergen Marsch <juergenmarsch@googlemail.com>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,19 +10,20 @@
  * ----------------------------------------------------------------------------
  * This file is designed to be parsed during the build process
  *
- * Contains function definitions
+ * Contains ESP8266 board specific function definitions
  * for handling LedMatrix functions (WS2812)
  * 
  * Everything is based on Espruino Source from Neil Kolban
  * and Thorsten van Eicken 
  * ----------------------------------------------------------------------------
  */
-#ifndef TARGETS_JSWRAP_LEDMATRIX_H_
-#define TARGETS_JSWRAP_LEDMATRIX_H_
+#ifndef TARGETS_ESP8266_JSWRAP_LEDMATRIX_H_
+#define TARGETS_ESP8266_JSWRAP_LEDMATRIX_H_
 #include "jsvar.h"
 #include "jspin.h"
 typedef struct {
   int width,height,cells,cellsLength;
+  int w_width,w_height;
   int red,green,blue;
 } PACKED_FLAGS JsLedMatrixData;
 typedef struct JsLedMatrix {
@@ -33,6 +34,7 @@ typedef struct JsLedMatrix {
 JsVar *jswrap_LedMatrix_createArrayBuffer(int width,int height);
 void jswrap_LedMatrix_setColor(JsVar *parent, int red, int green, int blue);
 void jswrap_LedMatrix_setColorHSB(JsVar *parent, JsVarFloat hue, JsVarFloat sat, JsVarFloat bri);
+void jswrap_LedMatrix_setWindowSize(JsVar *parent,int width,int height);
 void jswrap_LedMatrix_setPixel(JsVar *parent, int row, int column );
 JsVar *jswrap_LedMatrix_getPixel(JsVar *parent, int row, int column);
 void jswrap_LedMatrix_fill(JsVar *parent);
@@ -42,7 +44,9 @@ JsVar *jswrap_LedMatrix_getRow(JsVar *parent,int row);
 void jswrap_LedMatrix_setRow(JsVar *parent, JsVar *rowBuffer, int row);
 JsVar *jswrap_LedMatrix_getColumn(JsVar *parent,int column);
 void jswrap_LedMatrix_setColumn(JsVar *parent, JsVar *columnBuffer, int column);
+JsVar *jswrap_LedMatrix_getWindow(JsVar *parent,int row, int column);
+void jswrap_LedMatrix_setWindow(JsVar *parent, JsVar *rectBuffer, int row, int column);
 void jswrap_LedMatrix_shift(JsVar *parent, int direction);
 void jswrap_LedMatrix_rotate(JsVar *parent, int direction);
 
-#endif /* TARGETS_JSWRAP_LEDMATRIX_H_ */
+#endif /* TARGETS_ESP8266_JSWRAP_LEDMATRIX_H_ */
