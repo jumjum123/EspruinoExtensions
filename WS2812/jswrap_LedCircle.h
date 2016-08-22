@@ -32,7 +32,10 @@ typedef struct JsLedCircle {
 } PACKED_FLAGS JsLedCircle;
 
 JsVar *jswrap_LedCircle_createCircleBuffer();
+void jswrap_LedCircle_init(JsVar *parent, JsVar *options);
+void jswrap_LedCircle_circleSize(JsVar *parent, JsVar *circleSizeArr);
 void jswrap_LedCircle_setColor(JsVar *parent, int red, int green, int blue);
+JsVar *jswrap_LedCircle_getColor(JsVar *parent);
 void jswrap_LedCircle_setColorHSB(JsVar *parent, JsVarFloat hue, JsVarFloat sat, JsVarFloat bri);
 void jswrap_LedCircle_setPixel(JsVar *parent, int circle, int led );
 JsVar *jswrap_LedCircle_getPixel(JsVar *parent, int circle, int led);

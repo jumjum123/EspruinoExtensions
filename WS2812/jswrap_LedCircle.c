@@ -151,6 +151,57 @@ JsVar *jswrap_LedCircle_createCircleBuffer(){
 /*JSON{
   "type" : "method",
   "class" : "LedCircle",
+  "name" : "init",
+  "generate" : "jswrap_LedCircle_init",
+  "params"   : [
+    ["options","JsVar","options"]
+ ]   
+}
+Initializes color based on Javascript object. Similiar function to setColor.
+Mainly implemented to have an example for object args 
+*/
+void jswrap_LedCircle_init(JsVar *parent, JsVar *options){
+  JsLedCircle lm;
+  if(!LedCircleGetFromVar(&lm,parent)) return ;
+  jsvConfigObject configs[] = {
+      {"red", JSV_INTEGER, &lm.data.red},
+      {"green", JSV_INTEGER, &lm.data.green},
+      {"blue", JSV_INTEGER, &lm.data.blue}
+  };
+  jsvReadConfigObject(options, configs, sizeof(configs) / sizeof(jsvConfigObject));
+  LedCircleSetVar(&lm);
+}
+
+/*JSON{
+  "type" : "method",
+  "class" : "LedCircle",
+  "name" : "circleSize",
+  "generate" : "jswrap_LedCircle_circleSize",
+  "params"   : [
+    ["circleSizeArr","JsVar","circleSizes"]
+ ]   
+}
+Sets number of Leds for each circle. Useful if your circles are soldered differently.
+AFAIK, Array needs to have a size of 5, C doesn't really support resize of arrays.
+If you know better, please let me know. 
+*/
+void jswrap_LedCircle_circleSize(JsVar *parent, JsVar *circleSizeArr){
+  JsLedCircle lm; JsvIterator itcs; int i;
+  if(!LedCircleGetFromVar(&lm,parent)) return ;
+  jsvIteratorNew(&itcs, circleSizeArr);
+  i = 0;
+  while (jsvIteratorHasElement(&itcs)) {
+    lm.data.circleSize[i] = (int)jsvIteratorGetIntegerValue(&itcs);
+    jsvIteratorNext(&itcs);
+	i++;
+  }
+  jsvIteratorFree(&itcs);
+  LedCircleSetVar(&lm);
+}
+
+/*JSON{
+  "type" : "method",
+  "class" : "LedCircle",
   "name" : "setColor",
   "generate" : "jswrap_LedCircle_setColor",
   "params"   : [
@@ -195,6 +246,25 @@ void jswrap_LedCircle_setColorHSB(JsVar *parent, JsVarFloat hue, JsVarFloat sat,
   rgb = (rgb >> 8); lm.data.green = (char)rgb;
   rgb = (rgb >> 8); lm.data.blue = (char)rgb;
   LedCircleSetVar(&lm);
+}
+
+/*JSON{
+  "type" : "method",
+  "class" : "LedCircle",
+  "name" : "getColor",
+  "generate" : "jswrap_LedCircle_getColor",
+  "return" : ["JsVar","color_Object"]   
+}
+returns actual color setting
+*/
+JsVar *jswrap_LedCircle_getColor(JsVar *parent){
+  JsLedCircle lm;
+  if(!LedCircleGetFromVar(&lm,parent)) return false;
+  JsVar *obj = jsvNewObject();
+  jsvObjectSetChildAndUnLock(obj, "red", jsvNewFromInteger(lm.data.red));
+  jsvObjectSetChildAndUnLock(obj, "green", jsvNewFromInteger(lm.data.green));
+  jsvObjectSetChildAndUnLock(obj, "blue", jsvNewFromInteger(lm.data.blue));
+  return obj;
 }
 
 /*JSON{

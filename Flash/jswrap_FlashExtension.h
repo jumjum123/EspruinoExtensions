@@ -9,20 +9,17 @@
  *
  * ----------------------------------------------------------------------------
  * This file is designed to be parsed during the build process
- *
- * Contains ESP8266 board specific library definitions
- * for handling Neopixel
  * 
  * Everything is based on Espruino Source from Gordon Williams
  * ----------------------------------------------------------------------------
  */
 #include "jsvar.h"
-#include "jswrap_flash.h"
 
 #ifndef TARGETS_ESP8266_JSWRAP_FLASHEXTENSION_H_
 #define TARGETS_ESP8266_JSWRAP_FLASHEXTENSION_H_
 
-JsVar *jswrap_flash_readMappedArray(int addr, int pointer);
-JsVar *jswrap_flash_readMappedString(int addr, int pointer);
- 
+JsVar *jswrap_flash_mappedDir(int addr);
+JsVar *jswrap_flash_mappedString(int addr, JsVar *fileVar);
+JsVar *jswrap_flash_mappedArray(int addr, JsVar *fileVar);
+
 #endif /* TARGETS_ESP8266_JSWRAP_FLASHEXTENSION_H_ */
