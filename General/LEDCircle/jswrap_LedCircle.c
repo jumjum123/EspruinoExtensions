@@ -64,7 +64,7 @@ void LedCircleSetVar(JsLedCircle *lm){
   JsVar *dataname = jsvFindChildFromString(lm->LedCircleVar,JS_HIDDEN_CHAR_STR"lm",true);
   JsVar *data = jsvSkipName(dataname);
   if (!data) {
-    data = jsvNewStringOfLength(sizeof(JsLedCircleData));
+    data = jsvNewStringOfLength(sizeof(JsLedCircleData),0);
     jsvSetValueOfName(dataname, data);
   }
   jsvUnLock(dataname);

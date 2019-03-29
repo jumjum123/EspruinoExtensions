@@ -28,7 +28,7 @@ void setVar(JsSchmittTrigger *st){
   JsVar *dataname = jsvFindChildFromString(st->SchmittTriggerVar,JS_HIDDEN_CHAR_STR"st",true);
   JsVar *data = jsvSkipName(dataname);
   if (!data) {
-    data = jsvNewStringOfLength(sizeof(JsSchmittTriggerData));
+    data = jsvNewStringOfLength(sizeof(JsSchmittTriggerData),0);
     jsvSetValueOfName(dataname, data);
   }
   jsvUnLock(dataname);

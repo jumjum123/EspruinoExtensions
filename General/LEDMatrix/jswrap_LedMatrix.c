@@ -42,7 +42,7 @@ void LedMatrixSetVar(JsLedMatrix *lm){
   JsVar *dataname = jsvFindChildFromString(lm->LedMatrixVar,JS_HIDDEN_CHAR_STR"lm",true);
   JsVar *data = jsvSkipName(dataname);
   if (!data) {
-    data = jsvNewStringOfLength(sizeof(JsLedMatrixData));
+    data = jsvNewStringOfLength(sizeof(JsLedMatrixData),0);
     jsvSetValueOfName(dataname, data);
   }
   jsvUnLock(dataname);
