@@ -1,0 +1,22 @@
+[{"class": "__","name": "dump"}
+,{"class": "__","name": "edit"}
+,{"class": "__","name": "eval"}
+,{"class": "__","name": "peek16"}
+,{"class": "__","name": "peek32"}
+,{"class": "__","name": "peek8"}
+,{"class": "__","name": "poke16"}
+,{"class": "__","name": "poke32"}
+,{"class": "__","name": "poke8"}
+,{"class": "__","name": "trace"}
+,{"class": "E","name": "asm"}
+,{"class": "E","name": "compiledC"}
+,{"class": "E","name": "dumpFragmentation"}
+,{"class": "E","name": "dumpFreeList"}
+,{"class": "E","name": "dumpLockedVars"}
+,{"class": "E","name": "dumpStr"}
+,{"class": "E","name": "dumpTimers"}
+,{"class": "E","name": "nativeCall"}
+,{"class": "File","name": "write"}
+,{"class": "Flash","name": "erasePage"}
+,{"class": "Flash","name": "write"}
+]
