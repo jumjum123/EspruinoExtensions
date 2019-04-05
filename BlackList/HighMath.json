@@ -1,0 +1,6 @@
+[{"class": "E","name": "FFT"}
+,{"class": "E","name": "convolve"}
+,{"class": "E","name": "interpolate"}
+,{"class": "E","name": "interpolate2d"}
+,{"class": "E","name": "variance"}
+]
