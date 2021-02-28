@@ -1,0 +1,82 @@
+<html>
+<head>
+<script src="js/general.js"></script>
+<style>
+input[type=range] {
+    -webkit-appearance: none;
+    background-color: #eee;
+    width: 200px;
+    height:12px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+     -webkit-appearance: none;
+    background-color: #666;
+    opacity: 0.5;
+	border-radius:15px;
+    width: 20px;
+    height: 20px;
+}
+</style>
+</head>
+<body>
+<select id="originalImages"></select>
+<select id="size"><option>32x32<option>64x32<option>64x64<option>128x64</select>
+<select id="fileMode"><option>fs<option>Storage</select>
+<div>
+<table width="100%" border="1">
+ <tr>
+  <th><img id="sourceImage" width="500" height="300"></th>
+  <th>
+    <input type="range" id="redRange" min="0" max="255" width="255">
+	<br><br><input type="range" id="greenRange" min="0" max="255" width="255">
+	<br><br><input type="range" id="blueRange" min="0" max="255" width="255">
+    <br><br><img id="resizedImage">
+	<canvas id="recoloredImage"></canvas>
+	<canvas id="histogram" width="50" height="50"></canvas>
+	<br><textarea id="uploadJS" cols="60" rows="10"></textarea>
+  </th>
+ </tr>
+</table>
+</div>
+</body>
+<script>
+window.onload = function(){
+  getImagesOrigin(function(images){
+    images.sort();
+    fillSelect("originalImages",images);
+    selectImage();	
+  });
+  document.getElementById("redRange").style.backgroundColor = "#ff0000";
+  document.getElementById("greenRange").style.backgroundColor = "#00ff00";
+  document.getElementById("blueRange").style.backgroundColor = "#0000ff";
+  getEl("originalImages").onchange = selectImage;
+  function selectImage(){
+    imgName = getEl("originalImages").value;
+	getEl("sourceImage").src = getSourceFileName();
+	setTimeout(resizer,500);
+  }
+  document.getElementById("size").onchange = resizer;
+  document.getElementById("redRange").onchange = recol;
+  document.getElementById("greenRange").onchange = recol;
+  document.getElementById("blueRange").onchange = recol;
+  function recol(){
+    recolor("resizedImage","recoloredImage",
+            getEl("redRange").value,getEl("greenRange").value,getEl("blueRange").value);
+	createUpload("recoloredImage","uploadJS");
+	
+  }
+  function resizer(){
+    var wh,w,h,imgSource,imgResized;
+	imgSource = getSourceFileName();
+	imgResized = getResizedName();
+	wh = getEl("size").value; w = parseInt(wh.split("x")[0]); h = parseInt(wh.split("x")[1]);
+	if(w > h) getEl("sourceImage").width = "600"; else getEl("sourceImage").width = "300"; 
+	resizeImage(imgSource,imgResized,w,h,function(response){
+      document.getElementById("resizedImage").src = imgResized;
+	  setTimeout(recol,500);
+	});
+  }
+}
+</script>
+</html>
