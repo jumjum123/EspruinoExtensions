@@ -1,0 +1,2 @@
+WRAPPERSOURCES += ~/projects/LEDBoard/jswrap_LedBoard.c
+SOURCES += ~/projects/LEDBoard/LedBoardARM

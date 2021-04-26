@@ -19,34 +19,39 @@
 #include "jswrap_arraybuffer.h"
 #include "jswrap_espruino.h"
 #include "jsinteractive.h"
-#include "soc/gpio_struct.h"
+#include "nrf_gpio.h"
 
-Pin r1Pin; int r1Mask;
-Pin r2Pin; int r2Mask;
-Pin g1Pin; int g1Mask;
-Pin g2Pin; int g2Mask;
-Pin b1Pin; int b1Mask;
-Pin b2Pin; int b2Mask;
+int r1Mask;
+int r2Mask;
+int g1Mask;
+int g2Mask;
+int b1Mask;
+int b2Mask;
 
-Pin APin;int AMask;
-Pin BPin;int BMask;
-Pin CPin;int CMask;
-Pin DPin;int DMask;
-Pin EPin;int EMask;
-Pin enablePin;int enableMask;
-Pin latchPin;int latchMask;
-Pin clockPin;int clockMask;
+int AMask;
+int BMask;
+int CMask;
+int DMask;
+int EMask;
+int enableMask;
+int latchMask;
+int clockMask;
 
+NRF_GPIO_Type *IOreg;
+function getIOReg(){
+  uint32_t defaultPort = 15
+  reg = nrf_gpio_pin_port_decode(&defaultPort);
+}
 bool LedBoardSaveDataPin(Pin pin,int i){
   bool r;
   if(pin < 32){
     switch(i){
-	  case 0: r1Pin = pin; r1Mask = 1<<pin;break;	
-	  case 1: r2Pin = pin; r2Mask = 1<<pin;break;	
-	  case 2: g1Pin = pin; g1Mask = 1<<pin;break;	
-	  case 3: g2Pin = pin; g2Mask = 1<<pin;break;	
-	  case 4: b1Pin = pin; b1Mask = 1<<pin;break;	
-	  case 5: b2Pin = pin; b2Mask = 1<<pin;break;	
+	  case 0: r1Mask = 1<<pin;break;	
+	  case 1: r2Mask = 1<<pin;break;	
+	  case 2: g1Mask = 1<<pin;break;	
+	  case 3: g2Mask = 1<<pin;break;	
+	  case 4: b1Mask = 1<<pin;break;	
+	  case 5: b2Mask = 1<<pin;break;	
 	}
     r = true;
   }
@@ -57,11 +62,11 @@ bool LedBoardSaveAddressPin(Pin pin,int i){
   bool r;
   if(pin < 32){
     switch(i){
-      case 0: APin = pin; AMask = 1<<pin;break;
-      case 1: BPin = pin; BMask = 1<<pin;break;
-      case 2: CPin = pin; CMask = 1<<pin;break;
-      case 3: DPin = pin; DMask = 1<<pin;break;
-      case 4: EPin = pin; EMask = 1<<pin;break;
+      case 0: AMask = 1<<pin;break;
+      case 1: BMask = 1<<pin;break;
+      case 2: CMask = 1<<pin;break;
+      case 3: DMask = 1<<pin;break;
+      case 4: EMask = 1<<pin;break;
 	}
 	r = true;
   }
@@ -72,9 +77,9 @@ bool LedBoardSaveControlPin(Pin pin,int i){
   bool r;
   if(pin < 32){
 	switch(i){
-	  case 0: enablePin = pin; enableMask = 1<<pin; break;
-	  case 1: latchPin = pin; latchMask = 1<<pin; break;
-	  case 2: clockPin = pin; clockMask = 1<<pin; break;
+	  case 0: enableMask = 1<<pin; break;
+	  case 1: latchMask = 1<<pin; break;
+	  case 2: clockMask = 1<<pin; break;
 	}
 	r = true;
   }
@@ -95,23 +100,21 @@ void LedBoardSetDefault(){
   BMask = 0;
   CMask = 0;
   DMask = 0;
-  EMask = 0;  
+  EMask = 0; 
+  getIOReg();  
 }
 
 void LedBoardSetEnable(bool value){
-  if(value) GPIO.out_w1ts = enableMask;
-  else GPIO.out_w1tc = enableMask;
+  if(value) reg->OUTSET = enableMask;
+  else reg->OUTCLR = enableMask;
 }
 void LedBoardPulseLatch(){
-  GPIO.out_w1ts = latchMask;
-  jshDelayMicroseconds(1);
-  GPIO.out_w1tc = latchMask;
-  jshDelayMicroseconds(1);
+  reg->OUTSET = latchMask;
+  reg->OUTCLR = latchMask;
 }
 void LedBoardPulseClock(){
-  GPIO.out_w1tc = clockMask;
-  jshDelayMicroseconds(1);
-  GPIO.out_w1ts = clockMask;
+  reg->OUTCLR = clockMask;
+  reg->OUTSET = clockMask;
 }
 void LedBoardSetAddress(int row){
   int i;long resetMask,setMask;
@@ -126,8 +129,8 @@ void LedBoardSetAddress(int row){
 	}
     row>>=1;
   }
-  GPIO.out_w1tc = resetMask;
-  GPIO.out_w1ts = setMask;
+  reg->OUTCLR = resetMask;
+  reg->OUTSET = setMask;
 }
 void LedBoardSendRow(uint8_t *dataPnt){
   int i,val,resetMask,setMask;
@@ -146,8 +149,8 @@ void LedBoardSendRow(uint8_t *dataPnt){
 	if(val & 1) setMask += g2Mask; else resetMask += g2Mask;
 	val>>=1;
 	if(val & 1) setMask += r2Mask; else resetMask += r2Mask;
-	GPIO.out_w1tc = resetMask;
-	GPIO.out_w1ts = setMask;
+	reg->OUTCLR = resetMask;
+	reg->OUTSET = setMask;
 	dataPnt++;
 	LedBoardPulseClock();
   }
@@ -156,15 +159,15 @@ void LedBoardSendRow(uint8_t *dataPnt){
 void LedBoardtestPin(Pin pin,bool value){
   int pinMask;
   pinMask = 1<<pin;
-  if(value) GPIO.out_w1ts = pinMask; else GPIO.out_w1tc = pinMask;
+  if(value) reg->OUTSET = pinMask; else reg->OUTCLR = pinMask;
   jsWarn("Mask:%d",pinMask);
 }
 void LedBoardpulsePin(Pin pin,bool value){
   int pinMask;
   pinMask = 1<<pin;
-  if(value) GPIO.out_w1ts = pinMask;else GPIO.out_w1tc = pinMask;
+  if(value) reg->OUTSET = pinMask;else reg->OUTCLR = pinMask;
   jsWarn("PulseMask:%d",pinMask);
-  if(value) GPIO.out_w1tc = pinMask;else GPIO.out_w1ts = pinMask;  
+  if(value) reg->OUTCLR = pinMask;else reg->OUTSET = pinMask;  
 }
 void LedBoardDebugInfo(){
   jsWarn("adrLength:%d,rows:%d,pixelsInRow:%d",addressPinsLength,pixelRows,pixelsInRow);

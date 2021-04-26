@@ -1,0 +1,18 @@
+#!/bin/sh
+HOMEDIR=/home/espruino
+PROJECTDIR=${PWD}
+ESPRUINO=Edge
+BOARD=MDBT42Q
+
+. ./testVar.sh
+ESPRUINODIR=$HOMEDIR/Espruino/Espruino$ESPRUINO
+
+export PATH=$PATH:$HOMEDIR/tools/gcc-arm-none-eabi-8-2018-q4-major/bin/
+
+UNSUPPORTED=$PROJECTDIR/files$BOARD
+cd $ESPRUINODIR
+make clean 
+RELEASE=1 UNSUPPORTED=$UNSUPPORTED DFU_UPDATE_BUILD=1 BOARD=$BOARD make >$PROJECTDIR/log/$BOARD/stdout 2>$PROJECTDIR/log/$BOARD/stderr
+RELEASE=1 UNSUPPORTED=$UNSUPPORTED DFU_UPDATE_BUILD=1 BOARD=$BOARD make wrappersources >$PROJECTDIR/log/$BOARD/wrapperout 2>$PROJECTDIR/log/$BOARD/wrappererr
+cd $PROJECTDIR
+mv /$ESPRUINODIR/*mdbt42q* ./firmware/$BOARD

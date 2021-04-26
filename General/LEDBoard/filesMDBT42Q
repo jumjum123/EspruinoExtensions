@@ -1,0 +1,2 @@
+WRAPPERSOURCES += /home/espruino/projects/LEDBoard/jswrap_LedBoard.c
+SOURCES += /home/espruino/projects/LEDBoard/LedBoardMDBT42Q.c
