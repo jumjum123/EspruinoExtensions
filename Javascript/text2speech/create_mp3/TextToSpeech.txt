@@ -1,0 +1,49 @@
+https://ttsmp3.com/text-to-speech/German/
+
+function read(txt){
+  var m = document.getElementById("voicetext");
+  var r = document.getElementById("vorlesenbutton");
+  var d = document.getElementById("downloadenbutton")
+  var t = txt.split(" ");
+  for(var i = 0; i < t.length; i++){
+    m.value = t[i];
+    r.click();
+    d.click();
+  }
+}
+
+function getFiles(txt,lang){
+  txts = txt.split(" ");
+  for(var i = 0; i < txts.length;i++) postText(txts[i],lang);
+}
+function postText(txt,lang){
+  var params = "msg=" + encodeURIComponent(txt) + "&lang=" + lang + "&source=ttsmp3";
+  var soundArray;  
+  var httpreq = new XMLHttpRequest();
+  httpreq.open("POST", 'https://ttsmp3.com/makemp3_new.php',true);
+  httpreq.setRequestHeader('Content-type','application/x-www-form-urlencoded');
+  httpreq.overrideMimeType("application/json");
+  httpreq.onreadystatechange = function(e){
+    if (this.readyState == 4 && this.status == 200) {
+      try{ soundArray = JSON.parse(this.responseText);}
+      catch(err){console.log("postErr:",err);}
+      if(soundArray) readmpg(soundArray["MP3"],txt);
+    }
+  };
+  httpreq.send(params);
+}
+function readmpg(fileName,saveName){
+  var httpreq = new XMLHttpRequest();
+  httpreq.open("GET", 'https://ttsmp3.com/dlmp3.php?mp3='+fileName + "&location=direct", true);
+  httpreq.responseType = "blob";
+  httpreq.onreadystatechange = function(e){
+    if(this.readyState ==4 && this.status == 200){
+      try{
+        var blob = new Blob([this.response],{type:'audio/mp3'});
+        saveAs(blob,saveName + ".mp3");
+      }
+      catch(err) {console.log("readErr",err);}
+    }
+  }					
+  httpreq.send();
+}
